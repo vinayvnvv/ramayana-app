@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react';
-
-const Shloka = () => {
+const fetchShlokaData = (kanda, sarga, origin = '') => {
+    return fetch(`${origin}/api/shloka?kanda=${kanda}&sarga=${sarga}`);
+}
+const Shloka = props => {
     const router = useRouter();
     const [sargaText, setShlokaText] = useState('');
     const [shlokaNumber, setShlokaNunber] = useState('');
@@ -12,7 +14,7 @@ const Shloka = () => {
     const fetchShloka = () => {
         const {query: {kanda, sarga} = {}} = router;
         setLoading(true);
-        return fetch(`/api/shloka?kanda=${kanda}&sarga=${sarga}`).then(res => res.json())
+        return fetchShlokaData(kanda, sarga).then(res => res.json())
             .then(res => {
                 if(Array.isArray(res)) {
                     setShlokaData(res);
@@ -41,11 +43,11 @@ const Shloka = () => {
             }
             fetch('/api/shloka', {method: 'POST', mode: 'cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}).then(async res => {
                 if(res.status == 200) {
-                    alert('sarga added');
-                    await fetchSargas();
+                    alert('shloka added');
+                    await fetchShloka();
                     setLoading(false);
                     setShlokaText('');
-                    shlokaNumber('');
+                    setShlokaNunber('');
                 } else {
                     setLoading(false);
                     // alert('Error on adding');
@@ -64,26 +66,59 @@ const Shloka = () => {
         const {query: {kanda, sarga} = {}} = router;
         console.log(router)
         if(kanda && sarga) {
-            fetchShloka(); 
+            if(props.shlokaData) {
+                setShlokaData(props.shlokaData);
+            } else {
+                fetchShloka(); 
+            }
+            
         }
     }, []);
     return (
         <div>
+            {props.sargaDetails && <div>
+                <small>Kanda Name:</small> {props.sargaDetails.kanda.name} <br />
+                <small>Sarga Name:</small> {props.sargaDetails.name}
+            </div>}
+            <hr />
             <div>
-                <input onChange={(e) => setShlokaText(e.target.value)} value={sargaText}/>
-                <input onChange={(e) => setShlokaNunber(e.target.value)} value={shlokaNumber}/>
+                <input onChange={(e) => setShlokaNunber(e.target.value)} value={shlokaNumber} placeholder={'shloka number'}/><br />
+                <textarea onChange={(e) => setShlokaText(e.target.value)} value={sargaText} placeholder={'shloka text'}></textarea><br />
                 <button disabled={loading} onClick={addShloka}>Add Shloka</button>
             </div>
-            <div>
+            <hr />
+            <ul>
                 {shlokaData.map(s => 
-                    <div key={s._id}>
+                    <li key={s._id}>
                         {/* <Link href={"/shloka/" + s.kanda._id + '/' + s._id}> */}
-                            <div>{s.shloka_number} - {s.text}</div>
+                            <div style={{margin: '21px 0px'}}>{s.shloka_number} - {s.text}</div>
                         {/* </Link> */}
-                    </div>
+                    </li>
                 )}
-            </div>
+            </ul>
         </div>
     )
 }
+export async function getServerSideProps(context) {
+    // Fetch data from external API
+    const origin = new URL(context.req.headers.referer).origin;
+    const {kanda, sarga} = context.params;
+    let shlokaData = null;
+    let sargaDetails = null;
+    if(kanda && sarga) {
+        try {
+            const res = await fetchShlokaData(kanda, sarga, origin);
+            shlokaData = await res.json();
+            const res1 = await fetch(`${origin}/api/sarga?id=${sarga}`);
+            const jsD = await res1.json();
+            if(Array.isArray(jsD) && jsD.length > 0) {
+                sargaDetails = jsD[0];
+            }
+        } catch(err) {
+            console.log(err)
+        }
+        
+    }
+    return { props: {shlokaData, sargaDetails} }
+  }
 export default Shloka;

@@ -53,15 +53,15 @@ const Kanda = () => {
                 <input onChange={onInputChange} value={name}/>
                 <button onClick={onAdd} disabled={loading}>Add Kanda</button>
             </div>
-            <div>
+            <ul>
                 {kanda.map(k => 
-                    <div key={k._id}>
+                    <li key={k._id}>
                         <Link href={"sarga/" + k._id}>
                             <a>{k.name}</a>
                         </Link>
-                    </div>
+                    </li>
                 )}
-            </div>
+            </ul>
         </div>
     )
 }

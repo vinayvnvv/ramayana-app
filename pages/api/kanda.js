@@ -16,7 +16,12 @@ const handler = async (req, res) => {
       return res.status(400).send(err);
     }
   } else if(req.method === 'GET') {
-    Kanda.find({}, (err, k) => {
+    const {id} = req.query;
+    const filter = {};
+    if(id) {
+      filter['_id'] = id;
+    }
+    Kanda.find(filter, (err, k) => {
         if(!err) {
             res.status(200).send(k);
         }

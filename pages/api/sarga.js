@@ -12,11 +12,14 @@ const handler = async (req, res) => {
       return res.status(200).send(k);
   } else if(req.method === 'GET') {
     console.log(req)
-    const {kanda: kandaFilter} = req.query;
+    const {kanda: kandaFilter, id} = req.query;
     const filter = {};
     if(kandaFilter) {
       filter['kanda'] = kandaFilter;
     };
+    if(id) {
+      filter['_id'] = id;
+    }
     console.log(kandaFilter)
     Sarga.find(filter).populate('kanda').exec((err, doc) =>{
         if(err){

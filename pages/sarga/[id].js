@@ -2,7 +2,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react';
 
-const Sarga = () => {
+const fetchSargaData = (id, origin = '') => {
+    return fetch(`${origin}/api/sarga?kanda=${id}`);
+}
+
+const Sarga = props => {
     const router = useRouter();
     const [name, setSargaName] = useState('');
     const [kandaId, setKandaId] = useState();
@@ -11,7 +15,7 @@ const Sarga = () => {
     const fetchSargas = () => {
         const {query: {id} = {}} = router;
         setLoading(true);
-        return fetch(`/api/sarga?kanda=${id}`).then(res => res.json())
+        return fetchSargaData(id).then(res => res.json())
             .then(res => {
                 if(Array.isArray(res)) {
                     setSargaData(res);
@@ -51,28 +55,58 @@ const Sarga = () => {
     }
     useEffect(() => {
         const {query: {id} = {}} = router;
-        console.log(router)
+        console.log(router, props)
         if(id) {
             setKandaId(id)
-            fetchSargas(); 
+            if(props.sargaData) {
+                setSargaData(props.sargaData);
+            } else {
+                fetchSargas(); 
+            }
+            
         }
     }, []);
     return (
         <div>
+            {props.kandaDetails && <div>
+                <small>Kanda Name:</small> {props.kandaDetails.name} <br />
+            </div>}
+            <hr />
             <div>
                 <input onChange={(e) => setSargaName(e.target.value)} value={name}/>
                 <button disabled={loading} onClick={addSarga}>Add Sarga</button>
             </div>
-            <div>
+            <hr />
+            <ul>
                 {sargaData.map(s => 
-                    <div key={s._id}>
+                    <li key={s._id}>
                         <Link href={"/shloka/" + s.kanda._id + '/' + s._id}>
                             <a>{s.name}</a>
                         </Link>
-                    </div>
+                    </li>
                 )}
-            </div>
+            </ul>
         </div>
     )
 }
+
+export async function getServerSideProps(context) {
+    // Fetch data from external API
+    const origin = new URL(context.req.headers.referer).origin;
+    const {id} = context.params;
+    let sargaData = null;
+    let kandaDetails = null;
+    if(id) {
+        const res = await fetchSargaData(id, origin);
+        sargaData = await res.json();
+        const res1 = await fetch(`${origin}/api/kanda?id=${id}`);
+        const jsD = await res1.json();
+        if(Array.isArray(jsD) && jsD.length > 0) {
+            kandaDetails = jsD[0];
+        }
+    }
+    return { props: {sargaData, kandaDetails} }
+  }
+
+
 export default Sarga;
